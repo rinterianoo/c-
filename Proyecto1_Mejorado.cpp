@@ -9,15 +9,22 @@ Fecha: 2025
 CASOS DE USO:
 1. Inicio de Sesión: El usuario debe autenticarse antes de acceder al sistema
 2. Ingreso de Carreras: Permite registrar nuevas carreras con sus datos completos
-3. Ingreso de Cursos: Permite registrar cursos asociados a carreras
-4. Ingreso de Estudiantes: Permite registrar estudiantes y asignarlos a carreras
-5. Ingreso de Catedráticos: Permite registrar catedráticos y asignarlos a cursos
+3. Ingreso de Cursos: Permite registrar cursos asociados a carreras (valida que la carrera exista)
+4. Ingreso de Estudiantes: Permite registrar estudiantes y asignarlos a carreras (valida que la carrera exista)
+5. Ingreso de Catedráticos: Permite registrar catedráticos y asignarlos a cursos (valida que el curso exista)
 6. Reporte de Carreras: Muestra listado de todas las carreras registradas
 7. Reporte de Cursos: Muestra listado de todos los cursos registrados
 8. Reporte de Estudiantes: Muestra listado de todos los estudiantes registrados
 9. Reporte de Catedráticos: Muestra listado de todos los catedráticos registrados
 10. Consulta de Carrera: Busca y muestra información de una carrera específica
 11. Consulta de Estudiante: Busca y muestra información de un estudiante específico
+12. Consulta de Curso: Busca y muestra información de un curso específico
+13. Consulta de Catedrático: Busca y muestra información de un catedrático específico
+
+VALIDACIONES DE INTEGRIDAD REFERENCIAL:
+- No se puede agregar un curso si la carrera no existe
+- No se puede agregar un estudiante si la carrera no existe
+- No se puede agregar un catedrático si el curso no existe
 
 ================================================================================
 */
@@ -97,7 +104,12 @@ void reporteestudiantes();
 void reportecatedraticos();
 void consultacarrera();
 void consultaestudiante();
+void consultacurso();
+void consultacatedratico();
 bool validarusuario();
+// Funciones de validación de integridad referencial
+bool existeCarrera(int codcarrera);
+bool existeCurso(int codcurso);
 
 // Función para validar usuario y contraseña
 bool validarusuario()
@@ -146,6 +158,97 @@ bool validarusuario()
 	return false;
 }
 
+/*
+================================================================================
+FUNCIÓN: existeCarrera()
+PROPÓSITO: Validar que un código de carrera existe en el archivo
+PARÁMETRO: codcarrera - Código de la carrera a buscar
+RETORNA: true si existe, false si no existe
+ARCHIVO: C:\carrera.txt
+================================================================================
+Esta función es crucial para mantener INTEGRIDAD REFERENCIAL:
+- Antes de agregar un curso, valida que la carrera exista
+- Antes de agregar un estudiante, valida que la carrera exista
+================================================================================
+*/
+bool existeCarrera(int codcarrera)
+{
+	FILE *Ftemp;
+	struct datoscarrera temp;
+	bool encontrado = false;
+	
+	// Abrir archivo de carreras en modo solo lectura
+	Ftemp = fopen("c:\\carrera.txt", "r");
+	
+	// Si el archivo no existe, no hay carreras registradas
+	if(Ftemp == NULL)
+	{
+		return false;
+	}
+	
+	// Leer primer registro
+	fread(&temp, sizeof(struct datoscarrera), 1, Ftemp);
+	
+	// Buscar el código en todo el archivo
+	while(!feof(Ftemp))
+	{
+		if(temp.codcarrera == codcarrera)
+		{
+			encontrado = true;
+			break;
+		}
+		fread(&temp, sizeof(struct datoscarrera), 1, Ftemp);
+	}
+	
+	fclose(Ftemp);
+	return encontrado;
+}
+
+/*
+================================================================================
+FUNCIÓN: existeCurso()
+PROPÓSITO: Validar que un código de curso existe en el archivo
+PARÁMETRO: codcurso - Código del curso a buscar
+RETORNA: true si existe, false si no existe
+ARCHIVO: C:\curso.txt
+================================================================================
+Esta función es crucial para mantener INTEGRIDAD REFERENCIAL:
+- Antes de agregar un catedrático, valida que el curso exista
+================================================================================
+*/
+bool existeCurso(int codcurso)
+{
+	FILE *Ftemp;
+	struct datoscurso temp;
+	bool encontrado = false;
+	
+	// Abrir archivo de cursos en modo solo lectura
+	Ftemp = fopen("c:\\curso.txt", "r");
+	
+	// Si el archivo no existe, no hay cursos registrados
+	if(Ftemp == NULL)
+	{
+		return false;
+	}
+	
+	// Leer primer registro
+	fread(&temp, sizeof(struct datoscurso), 1, Ftemp);
+	
+	// Buscar el código en todo el archivo
+	while(!feof(Ftemp))
+	{
+		if(temp.codcurso == codcurso)
+		{
+			encontrado = true;
+			break;
+		}
+		fread(&temp, sizeof(struct datoscurso), 1, Ftemp);
+	}
+	
+	fclose(Ftemp);
+	return encontrado;
+}
+
 main ()
 {
 	// Validar usuario antes de iniciar el sistema
@@ -176,8 +279,10 @@ main ()
 		gotoxy(30,17); cout<<"REPORTE DE CATEDRATICOS.8 ";
 		gotoxy(30,18); cout<<"CONSULTA DE CARRERA.....9 ";
 		gotoxy(30,19); cout<<"CONSULTA DE ESTUDIANTE..10";
-		gotoxy(30,20); cout<<"SALIR...................11"; 
-	    gotoxy(30,21); cout<<"OPCION ===============> ";	   
+		gotoxy(30,20); cout<<"CONSULTA DE CURSO.......11";
+		gotoxy(30,21); cout=="CONSULTA DE CATEDRATICO.12";
+		gotoxy(30,22); cout<<"SALIR...................13"; 
+	    gotoxy(30,23); cout<<"OPCION ===============> ";	   
 	    cin>>mopcion;
 	    
 	    switch (mopcion)
@@ -224,8 +329,14 @@ main ()
 		    case 10:
 		    	consultaestudiante();
 		    	break;
+		    case 11:
+		    	consultacurso();
+		    	break;
+		    case 12:
+		    	consultacatedratico();
+		    	break;
 		}
-	}while (mopcion!=11);
+	}while (mopcion!=13);
 }
 
 /*
@@ -460,7 +571,21 @@ void ingresocursos()
 
 	    if (mencontro==0)
 	    {
+		 	// ===== SOLICITAR CÓDIGO DE CARRERA =====
 		 	gotoxy(50,12); cin>>curso.codcarrera;
+		 	
+		 	// ===== VALIDACIÓN DE INTEGRIDAD REFERENCIAL =====
+		 	// Verificar que el código de carrera exista antes de continuar
+		 	if(!existeCarrera(curso.codcarrera))
+		 	{
+		 		gotoxy(20,18); cout<<"ERROR: El codigo de carrera "<<curso.codcarrera<<" no existe!";
+		 		gotoxy(20,19); cout<<"Debe registrar la carrera primero (Opcion 1 del menu).";
+		 		gotoxy(20,20); cout<<"Presione una tecla para continuar...";
+		 		getch();
+		 		fclose(F);
+		 		continue;  // Volver al inicio del bucle sin guardar
+		 	}
+		 	
 		 	cin.ignore(1,'\n'); 
 		 	gotoxy(50,13); cin.getline(curso.catedratico, 40);	 
 			gotoxy(50,14); cin>>curso.carnet;
@@ -516,7 +641,21 @@ void ingresoestudiantes()
 
 	    if (mencontro==0)
 	    {
+		 	// ===== SOLICITAR CÓDIGO DE CARRERA =====
 		 	gotoxy(50,12); cin>>estudiante.codcarrera;
+		 	
+		 	// ===== VALIDACIÓN DE INTEGRIDAD REFERENCIAL =====
+		 	// Verificar que el código de carrera exista antes de continuar
+		 	if(!existeCarrera(estudiante.codcarrera))
+		 	{
+		 		gotoxy(20,15); cout<<"ERROR: El codigo de carrera "<<estudiante.codcarrera<<" no existe!";
+		 		gotoxy(20,16); cout<<"Debe registrar la carrera primero (Opcion 1 del menu).";
+		 		gotoxy(20,17); cout<<"Presione una tecla para continuar...";
+		 		getch();
+		 		fclose(F);
+		 		continue;  // Volver al inicio del bucle sin guardar
+		 	}
+		 	
 		 	cin.ignore(1,'\n'); 
 			gotoxy(50,13); cin.getline(estudiante.nombreestudiante, 30);
 			estudiante.carnet=mcarnet;
@@ -569,7 +708,21 @@ void ingresocatedraticos()
 
 	    if (mencontro==0)
 	    {
+		 	// ===== SOLICITAR CÓDIGO DE CURSO =====
 		 	gotoxy(50,12); cin>>catedratico.codcurso;
+		 	
+		 	// ===== VALIDACIÓN DE INTEGRIDAD REFERENCIAL =====
+		 	// Verificar que el código de curso exista antes de continuar
+		 	if(!existeCurso(catedratico.codcurso))
+		 	{
+		 		gotoxy(20,15); cout<<"ERROR: El codigo de curso "<<catedratico.codcurso<<" no existe!";
+		 		gotoxy(20,16); cout<<"Debe registrar el curso primero (Opcion 2 del menu).";
+		 		gotoxy(20,17); cout<<"Presione una tecla para continuar...";
+		 		getch();
+		 		fclose(F);
+		 		continue;  // Volver al inicio del bucle sin guardar
+		 	}
+		 	
 		 	cin.ignore(1,'\n'); 
 			gotoxy(50,13); cin.getline(catedratico.nombrecatedratico, 40);
 			catedratico.idcatedratico=midcatedratico;
@@ -883,6 +1036,106 @@ void consultaestudiante()
 	if(mencontro == 0)
 	{
 		gotoxy(25,13); cout<<"¡Estudiante no encontrado!";
+	}
+	
+	fclose(F);
+	
+	gotoxy(25,18); cout<<"Presione cualquier tecla para continuar...";
+	getch();
+}
+
+//Consulta de Curso por Código
+void consultacurso()
+{
+	int mcodcurso, mencontro;
+	system("cls");
+	system("color 8A");
+	
+	gotoxy(25,5); cout<<"==================================================";
+	gotoxy(25,6); cout<<"           CONSULTA DE CURSO";
+	gotoxy(25,7); cout<<"==================================================";
+	
+	gotoxy(25,10); cout<<"Ingrese Codigo del Curso: ";
+	gotoxy(52,10); cin>>mcodcurso;
+	
+	F=fopen("c:\\curso.txt","r");
+	if(F==NULL)
+	{
+		gotoxy(25,15); cout<<"No se pudo abrir el archivo de cursos";
+		getch();
+		return;
+	}
+	
+	mencontro = 0;
+	fread(&curso, sizeof(struct datoscurso), 1, F);
+	
+	while(!feof(F))
+	{
+		if(curso.codcurso == mcodcurso)
+		{
+			gotoxy(25,13); cout<<"Codigo Curso..: "<<curso.codcurso;
+			gotoxy(25,14); cout<<"Codigo Carrera: "<<curso.codcarrera;
+			gotoxy(25,15); cout<<"Catedratico...: "<<curso.catedratico;
+			gotoxy(25,16); cout<<"Carnet........: "<<curso.carnet;
+			gotoxy(25,17); cout<<"Semestre......: "<<curso.semestre;
+			mencontro = 1;
+			break;
+		}
+		fread(&curso, sizeof(struct datoscurso), 1, F);
+	}
+	
+	if(mencontro == 0)
+	{
+		gotoxy(25,13); cout<<"¡Curso no encontrado!";
+	}
+	
+	fclose(F);
+	
+	gotoxy(25,20); cout<<"Presione cualquier tecla para continuar...";
+	getch();
+}
+
+//Consulta de Catedrático por ID
+void consultacatedratico()
+{
+	int midcatedratico, mencontro;
+	system("cls");
+	system("color 8A");
+	
+	gotoxy(25,5); cout=="==================================================";
+	gotoxy(25,6); cout<<"           CONSULTA DE CATEDRATICO";
+	gotoxy(25,7); cout=="==================================================";
+	
+	gotoxy(25,10); cout<<"Ingrese ID del Catedratico: ";
+	gotoxy(54,10); cin>>midcatedratico;
+	
+	F=fopen("c:\\catedratico.txt","r");
+	if(F==NULL)
+	{
+		gotoxy(25,15); cout<<"No se pudo abrir el archivo de catedraticos";
+		getch();
+		return;
+	}
+	
+	mencontro = 0;
+	fread(&catedratico, sizeof(struct datoscatedratico), 1, F);
+	
+	while(!feof(F))
+	{
+		if(catedratico.idcatedratico == midcatedratico)
+		{
+			gotoxy(25,13); cout<<"ID Catedratico: "<<catedratico.idcatedratico;
+			gotoxy(25,14); cout<<"Codigo Curso..: "<<catedratico.codcurso;
+			gotoxy(25,15); cout<<"Nombre........: "<<catedratico.nombrecatedratico;
+			mencontro = 1;
+			break;
+		}
+		fread(&catedratico, sizeof(struct datoscatedratico), 1, F);
+	}
+	
+	if(mencontro == 0)
+	{
+		gotoxy(25,13); cout<<"¡Catedratico no encontrado!";
 	}
 	
 	fclose(F);
